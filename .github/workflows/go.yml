@@ -23,7 +23,7 @@ jobs:
         go-version: '1.21.x'
 
     - name: Build
-      run: go build -v ../../../webdemo.go
+      run: go build -v ./webdemo.go
 
     - name: Test
-      run: go test -v ../../../webdemo.go
+      run: go test -v ./webdemo.go

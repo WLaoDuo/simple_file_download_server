@@ -39,7 +39,8 @@ jobs:
       run: go build -o ./out/ ./webdemo.go
       env:
         GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}            
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
     # - name: Packaging...
     #   run: tar czf nodeUpgrade-${{ matrix.goos }}-${{ matrix.goarch }}.tgz nodeUpgrade
     

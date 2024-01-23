@@ -42,10 +42,7 @@ jobs:
         GOARCH: ${{ matrix.goarch }}            
     # - name: Packaging...
     #   run: tar czf nodeUpgrade-${{ matrix.goos }}-${{ matrix.goarch }}.tgz nodeUpgrade
-      
-    - name: Get version
-      id: version
-      run: echo "::set-output name=version::$(git rev-parse --short HEAD)"
+    
     - name: Upload archive
       uses: actions/upload-artifact@v3
       with:

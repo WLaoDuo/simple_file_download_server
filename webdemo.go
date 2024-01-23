@@ -29,12 +29,13 @@ func main() {
 	result1 := exit_path("./certs/server.crt")
 	result2 := exit_path("./certs/server.key")
 	if result1+result2 == 0 {
-		fmt.Printf("8080端口启用https")
-	
+		fmt.Printf("8081端口启用https")
+
+		http.Handle("/", http.FileServer(http.Dir("."))) //当前目录
 		http.ListenAndServeTLS(":8081","./certs/server.crt","./certs/server.key", nil) //https监听8081端口，外网可访问https://ip:8081
 		
 	} else {
-		fmt.Printf("找不到证书和私钥，启用http")
+		fmt.Printf("找不到证书和私钥，8080端口启用http")
 
 		http.Handle("/", http.FileServer(http.Dir("."))) //当前目录
 		http.ListenAndServe(":8080", nil)    

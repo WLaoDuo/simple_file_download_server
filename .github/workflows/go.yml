@@ -7,46 +7,55 @@ on:
       platform:
         description: 'platform'
         required: true
-        default: 'windows-latest'
+        default: 'ubuntu-20.04'
         type: choice
         options:
           - 'windows-latest'
           - 'macos-latest'
           - 'ubuntu-20.04'
 
-#permissions:
-  #contents: write
-  # packages: write
-  # issues: write
+env:
+  GITHUB_TOKEN: ${{ secrets.GOACTION }}    
 
 jobs:
-  goreleaser:
-    runs-on: ${{ inputs.platform }}
+  buildAndDeploy:
+    runs-on:  ${{ secrets.GOACTION }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # 交叉构建,多平台交叉编译
+    strategy:
+      matrix:
+        include:
+          - goarch: amd64
+            goos: linux
+          - goarch: amd64
+            goos: darwin
+          - goarch: arm64
+            goos: linux
+          - goarch: arm64
+            goos: darwin
+    # 使用checkout
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: stable
-      # More assembly might be required: Docker logins, GPG, etc.
-      # It all depends on your needs.
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          # either 'goreleaser' (default) or 'goreleaser-pro'
-          distribution: goreleaser
-          version: latest
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Your GoReleaser Pro key, if you are using the 'goreleaser-pro' distribution
-          # GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-      - name: Upload archive
-        uses: actions/upload-artifact@v3
-        with:
+    - uses: actions/checkout@v3
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with: 
+        go-version: '>=1.16.0'
+    - run: go version
+    - name: make
+      run: make
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}            
+    - name: Packaging...
+      run: tar czf nodeUpgrade-${{ matrix.goos }}-${{ matrix.goarch }}.tgz nodeUpgrade
+      
+    - name: Get version
+      id: version
+      run: echo "::set-output name=version::$(git rev-parse --short HEAD)"
+    - name: Upload archive
+      uses: actions/upload-artifact@v3
+      with:
           name: output-${{ inputs.platform }}.zip
-          path: ./*
+          path: ./nodeUpgrade-${{ matrix.goos }}-${{ matrix.goarch }}.tgz
           retention-days: 3

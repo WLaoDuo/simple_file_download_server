@@ -14,14 +14,9 @@ on:
           - 'macos-latest'
           - 'ubuntu-20.04'
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GOACTION }}    
-
 jobs:
   buildAndDeploy:
-    runs-on:  ${{ secrets.GOACTION }}
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    runs-on:  ${{ inputs.platform }}
     # 交叉构建,多平台交叉编译
     strategy:
       matrix:

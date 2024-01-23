@@ -2,11 +2,17 @@
 name: goreleaser
 
 on:
-  pull_request:
-  push:
-    # run only against tags
-    tags:
-      - "*"
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'platform'
+        required: true
+        default: 'windows-latest'
+        type: choice
+        options:
+          - 'windows-latest'
+          - 'macos-latest'
+          - 'ubuntu-20.04'
 
 #permissions:
   #contents: write
@@ -15,7 +21,7 @@ on:
 
 jobs:
   goreleaser:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.platform }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

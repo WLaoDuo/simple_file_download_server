@@ -38,3 +38,9 @@ jobs:
           #GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Your GoReleaser Pro key, if you are using the 'goreleaser-pro' distribution
           # GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+      - name: Upload archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: output-${{ inputs.platform }}.zip
+          path: ./*
+          retention-days: 3

@@ -16,7 +16,7 @@ on:
 
 jobs:
   buildAndDeploy:
-    runs-on:  ${{ inputs.platform }}
+    runs-on:  ubuntu-20.04
     # 交叉构建,多平台交叉编译
     strategy:
       matrix:
@@ -25,10 +25,8 @@ jobs:
             goos: linux
           - goarch: amd64
             goos: darwin
-          - goarch: arm64
-            goos: linux
-          - goarch: arm64
-            goos: darwin
+          - goarch: amd64
+            goos: windows
     # 使用checkout
     steps:
     - uses: actions/checkout@v3

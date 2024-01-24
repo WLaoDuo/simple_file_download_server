@@ -26,18 +26,44 @@ if err == nil {
 }
 
 func main() {
-	result1 := exit_path("./certs/server.crt")
-	result2 := exit_path("./certs/server.key")
-	if result1+result2 == 0 {
-		fmt.Printf("8081端口启用https")
+	args := os.Args[1:] // 获取除程序名称外的参数
+	// fmt.Printf("os:"+os.Args[0]+"\n")
+	// 检查是否有参数传入，如果没有则设置默认值
+	var path_show string
+	var crtPath string
+	var keyPath string
 
-		http.Handle("/", http.FileServer(http.Dir("."))) //当前目录
-		http.ListenAndServeTLS(":8081","./certs/server.crt","./certs/server.key", nil) //https监听8081端口，外网可访问https://ip:8081
+	if len(args) == 0 {
+		path_show = "."
+	} else if len(args) ==1 {
+		// fmt.Println("参数长度",len(args))
+		path_show = args[0]
+		crtPath ="D:/study/ssh-key/webdemo/server.crt"
+		keyPath ="D:/study/ssh-key/webdemo/server.key"
+	} else if len(args) ==3 {
+		path_show = args[0]
+		crtPath=args[1]
+		keyPath=args[2]
+	}
+
+	
+	result1 := exit_path(crtPath)
+	result2 := exit_path(keyPath)
+
+
+	if result1+result2 == 0 {
+		
+		fmt.Println("文件路径 "+path_show)
+		fmt.Printf("8081端口启用https")
+		
+		http.Handle("/", http.FileServer(http.Dir(path_show))) //当前目录
+		http.ListenAndServeTLS(":8081",crtPath,keyPath, nil) //https监听8081端口，外网可访问https://ip:8081
 		
 	} else {
-		fmt.Printf("找不到证书和私钥，8080端口启用http")
+		fmt.Println("文件路径  为当前目录")
+		fmt.Printf("找不到证书和私钥，启用http")
 
-		http.Handle("/", http.FileServer(http.Dir("."))) //当前目录
+		http.Handle("/", http.FileServer(http.Dir(path_show))) //当前目录
 		http.ListenAndServe(":8080", nil)    
 		//监听8080端口，外网可访问http://ip:8080
 	}

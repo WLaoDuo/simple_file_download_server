@@ -11,7 +11,6 @@ import (
 func exit_path(filename string) int {
 	_, err := os.Stat(filename)
 
-	// 判断文件是否存在
 	if err == nil {
 		// fmt.Printf("文件 %s 存在\n", filename)
 		return 0
@@ -43,13 +42,17 @@ func basicAuth(handler http.Handler, username, password string) http.Handler {
 
 
 var path_show = flag.String("path", ".", "文件路径")
+
+
 func main() {
 
 	
 	var crtPath =flag.String("crt","D:/study/ssh-key/webdemo/server.crt","crt路径")
 	var keyPath =flag.String("key","D:/study/ssh-key/webdemo/server.key","key路径")
 	var username = flag.String("u","admin","用户名")
-	var password = flag.String("p","admin","密码")
+	password := flag.String("p","admin","密码")
+	port := flag.Int("port",8080,"端口")
+	
 	flag.Parse()
 
 
@@ -62,20 +65,25 @@ func main() {
 	if result1+result2 == 0 {
 		
 		log.Println("文件路径 "+*path_show)
-		log.Printf("8081端口启用https")
+		log.Printf("%d端口启用https",*port)
 		
 		http.Handle("/", authHandler) //当前目录
-		http.ListenAndServeTLS(":8081",*crtPath,*keyPath, nil) //https监听8081端口，外网可访问https://ip:8081
-
+		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", *port),*crtPath,*keyPath, nil) //https监听8080端口，外网可访问https://ip:8080
+		if err != nil {
+			log.Printf(err.Error())
+		}
 		// http.ListenAndServeTLS(":8443", "cert.pem", "key.pem", nil)可以使用crypto/tls中的generate_cert.go来生成cert.pem和key.pem
 		//go run $GOROOT/src/crypto/tls/generate_cert.go --host 域名/IP
 		
 	} else {
 		log.Println("文件路径  为当前目录")
-		log.Printf("找不到证书和私钥，启用http")
+		log.Printf("找不到证书和私钥，%d端口启用http",*port)
 
 		http.Handle("/", authHandler) //当前目录
-		http.ListenAndServe(":8080", nil)    
+		err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)    
 		//监听8080端口，外网可访问http://ip:8080
+		if err != nil {
+			log.Printf(err.Error())
+		}
 	}
 }

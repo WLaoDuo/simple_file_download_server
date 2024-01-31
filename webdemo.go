@@ -50,7 +50,9 @@ func main() {
 	var crtPath =flag.String("crt","D:/study/ssh-key/webdemo/server.crt","crt路径")
 	var keyPath =flag.String("key","D:/study/ssh-key/webdemo/server.key","key路径")
 	var username = flag.String("u","admin","用户名")
-	password := flag.String("p","admin","密码")
+	var password string
+	flag.StringVar(&password,"password","admin","密码")
+	flag.StringVar(&password,"p","admin","密码")
 	port := flag.Int("port",8080,"端口")
 	
 	flag.Parse()
@@ -60,7 +62,7 @@ func main() {
 	result1 := exit_path(*crtPath)
 	result2 := exit_path(*keyPath)
 	fileServer := http.FileServer(http.Dir(*path_show))
-	authHandler := basicAuth(fileServer, *username, *password)
+	authHandler := basicAuth(fileServer, *username, password)
 
 	if result1+result2 == 0 {
 		

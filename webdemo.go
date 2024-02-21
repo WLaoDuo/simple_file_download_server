@@ -47,6 +47,7 @@ var path_show = flag.String("path", ".", "文件路径")
 func main() {
 
 	
+
 	var crtPath =flag.String("crt","D:/study/ssh-key/webdemo/server.crt","crt路径")
 	var keyPath =flag.String("key","D:/study/ssh-key/webdemo/server.key","key路径")
 	var username = flag.String("u","admin","用户名")
@@ -56,6 +57,7 @@ func main() {
 	port := flag.Int("port",8080,"端口")
 	
 	flag.Parse()
+	
 
 
 	
@@ -64,10 +66,14 @@ func main() {
 	fileServer := http.FileServer(http.Dir(*path_show))
 	authHandler := basicAuth(fileServer, *username, password)
 
+
+	log.Printf("\n用户名"+*username+" 密码"+password)
+
 	if result1+result2 == 0 {
 		
 		log.Println("文件路径 "+*path_show)
 		log.Printf("%d端口启用https",*port)
+
 		
 		http.Handle("/", authHandler) //当前目录
 		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", *port),*crtPath,*keyPath, nil) //https监听8080端口，外网可访问https://ip:8080
@@ -81,9 +87,10 @@ func main() {
 		log.Println("文件路径  为当前目录")
 		log.Printf("找不到证书和私钥，%d端口启用http",*port)
 
+
 		http.Handle("/", authHandler) //当前目录
 		err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)    
-		//监听8080端口，外网可访问http://ip:8080
+		//监听8080端口，外网可访问http://ip:port
 		if err != nil {
 			log.Printf(err.Error())
 		}

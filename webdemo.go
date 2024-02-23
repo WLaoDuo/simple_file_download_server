@@ -84,7 +84,7 @@ func main() {
 		//go run $GOROOT/src/crypto/tls/generate_cert.go --host 域名/IP
 		
 	} else {
-		log.Println("文件路径  为当前目录")
+		log.Println("文件路径未指定或文件路径不存在，默认为当前目录")
 		log.Printf("找不到证书和私钥，%d端口启用http",*port)
 
 

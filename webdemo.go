@@ -50,7 +50,7 @@ func main() {
 
 	var crtPath =flag.String("crt","D:/study/ssh-key/webdemo/server.crt","crt路径")
 	var keyPath =flag.String("key","D:/study/ssh-key/webdemo/server.key","key路径")
-	var username = flag.String("u","admin","用户名")
+	var username = flag.String("u","admin","用户名") //默认用户名admin
 	var password string
 	flag.StringVar(&password,"password","admin","密码")
 	flag.StringVar(&password,"p","admin","密码")

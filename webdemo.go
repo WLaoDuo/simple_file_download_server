@@ -41,7 +41,7 @@ func basicAuth(handler http.Handler, username, password string) http.Handler {
 }
 
 
-var path_show = flag.String("path", ".", "文件路径")
+var path_show = flag.String("path", ".", "文件路径") //文件加载路径，绝对路径可以，相对路径也可以，但需要注意加引号
 
 
 func main() {

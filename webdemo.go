@@ -52,8 +52,8 @@ func main() {
 	var keyPath =flag.String("key","D:/study/ssh-key/webdemo/server.key","key路径")
 	var username = flag.String("u","admin","用户名") //默认用户名admin
 	var password string
-	flag.StringVar(&password,"password","admin","密码")
-	flag.StringVar(&password,"p","admin","密码")
+	flag.StringVar(&password,"password","admin","密码") //长参数-password
+	flag.StringVar(&password,"p","admin","密码") //短参数-p
 	port := flag.Int("port",8080,"端口")
 	
 	flag.Parse()

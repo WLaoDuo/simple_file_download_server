@@ -61,8 +61,8 @@ func main() {
 
 
 	
-	result1 := exit_path(*crtPath)
-	result2 := exit_path(*keyPath)
+	result1 := exit_path(*crtPath) //crt证书是否存在
+	result2 := exit_path(*keyPath) //key密钥是否存在
 	fileServer := http.FileServer(http.Dir(*path_show))
 	authHandler := basicAuth(fileServer, *username, password)
 

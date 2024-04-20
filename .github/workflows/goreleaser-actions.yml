@@ -41,5 +41,5 @@ jobs:
           path: |
             ./dist/*.tar.gz
             ./dist/*.zip
-            ./dist/*.checksums.txt
+            ./dist/simple_file_download_server[\w\.\-\_]+_checksums.txt
 

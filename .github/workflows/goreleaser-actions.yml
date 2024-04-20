@@ -35,6 +35,7 @@ jobs:
       -
         name: Upload assets
         uses: actions/upload-artifact@v4
+        #https://github.com/actions/upload-artifact
         with:
           name: MyApps
           # path: ./dist/* #全部文件一股脑打包，太臃肿

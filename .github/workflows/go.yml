@@ -1,5 +1,5 @@
 # .github/workflows/release.yml
-name: goreleaser
+name: go原生编译
 
 on:
   workflow_dispatch:

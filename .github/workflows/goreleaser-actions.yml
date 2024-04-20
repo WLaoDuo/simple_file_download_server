@@ -37,4 +37,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MyApps
-          path: ./dist/*
+          # path: ./dist/* #全部文件一股脑打包，太臃肿
+          path: |
+            ./dist/*.tar.gz
+            ./dist/*.zip
+            ./dist/*.checksums.txt
+

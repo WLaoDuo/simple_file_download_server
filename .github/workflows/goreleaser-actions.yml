@@ -1,5 +1,5 @@
 name: goreleaser-actions
-
+#https://github.com/goreleaser/goreleaser-action
 on:
   pull_request:
   push:

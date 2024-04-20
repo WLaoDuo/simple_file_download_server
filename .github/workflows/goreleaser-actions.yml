@@ -5,10 +5,10 @@ on:
   pull_request:
   push:
     branches:
-        - dev
+      - dev
 
 permissions:
-  contents: write
+  contents: read #write
 
 jobs:
   goreleaser:

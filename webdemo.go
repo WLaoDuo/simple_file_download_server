@@ -2,6 +2,8 @@ package main
 
 import (
 		"net/http"
+		// "crypto/tls"
+		// "crypto/x509"
 		"fmt"
 		"os"
 		"flag"
@@ -54,7 +56,7 @@ func main() {
 	var password string
 	flag.StringVar(&password,"password","admin","密码") //长参数-password
 	flag.StringVar(&password,"p","admin","密码") //短参数-p
-	port := flag.Int("port",8080,"端口")
+	port := flag.Int("port",80,"端口")
 	
 	flag.Parse()
 	
@@ -63,14 +65,19 @@ func main() {
 	
 	result1 := exit_path(*crtPath) //crt证书是否存在
 	result2 := exit_path(*keyPath) //key密钥是否存在
+
+
 	fileServer := http.FileServer(http.Dir(*path_show))
 	authHandler := basicAuth(fileServer, *username, password)
 
 
 	log.Printf("\n用户名"+*username+" 密码"+password)
 
+
+
+
 	if result1+result2 == 0 {
-		
+		*port=443
 		log.Println("文件路径 "+*path_show)
 		log.Printf("%d端口启用https",*port)
 
@@ -84,6 +91,7 @@ func main() {
 		//go run $GOROOT/src/crypto/tls/generate_cert.go --host 域名/IP
 		
 	} else {
+		*port=80
 		log.Println("文件路径未指定或文件路径不存在，默认为当前目录")
 		log.Printf("找不到证书和私钥，%d端口启用http",*port)
 

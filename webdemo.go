@@ -75,28 +75,33 @@ func main() {
 
 
 
+	var flag_443_80 int
+	
+	http.Handle("/", authHandler) //当前目录
 
-	if result1+result2 == 0 {
+	if result1+result2 == 0 || flag_443_80==443{
 		*port=443
 		log.Println("文件路径 "+*path_show)
 		log.Printf("%d端口启用https",*port)
 
 		
-		http.Handle("/", authHandler) //当前目录
+		// http.Handle("/", authHandler) //当前目录
 		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", *port),*crtPath,*keyPath, nil) //https监听8080端口，外网可访问https://ip:8080
 		if err != nil {
-			log.Printf(err.Error())
+			log.Printf(err.Error(),"证书或私钥有问题，请检查")
+			flag_443_80=80
 		}
 		// http.ListenAndServeTLS(":8443", "cert.pem", "key.pem", nil)可以使用crypto/tls中的generate_cert.go来生成cert.pem和key.pem
 		//go run $GOROOT/src/crypto/tls/generate_cert.go --host 域名/IP
 		
-	} else {
+	} 
+	if result1+result2!=0 || flag_443_80==80 {
 		*port=80
 		log.Println("文件路径未指定或文件路径不存在，默认为当前目录")
 		log.Printf("找不到证书和私钥，%d端口启用http",*port)
 
 
-		http.Handle("/", authHandler) //当前目录
+		// http.Handle("/", authHandler) //当前目录
 		err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)    
 		//监听8080端口，外网可访问http://ip:port
 		if err != nil {

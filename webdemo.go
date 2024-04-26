@@ -94,6 +94,8 @@ func main() {
 		// http.ListenAndServeTLS(":8443", "cert.pem", "key.pem", nil)可以使用crypto/tls中的generate_cert.go来生成cert.pem和key.pem
 		//go run $GOROOT/src/crypto/tls/generate_cert.go --host 域名/IP
 		
+		//也可用https://github.com/FiloSottile/mkcert项目签发证书
+		//.\mkcert-v1.4.4-windows-amd64.exe -key-file ./127.0.0.1-key -cert-file ./127.0.0.1.crt  127.0.0.1
 	} 
 	if result1+result2!=0 || flag_443_80==80 {
 		*port=80

@@ -30,15 +30,17 @@ func basicAuth(handler http.Handler, username, password string) http.Handler {
 		ip := r.RemoteAddr
 		// 打印请求信息及访问的 IP 地址
 		log.Printf("%s使用%s方式请求文件%s", ip, r.Method, *path_show+r.URL.Path)
-
-		user, pass, ok := r.BasicAuth()
-		if !ok || user != username || pass != password {
-			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprintln(w, "Unauthorized")
-			return
+		if username != "" || password != "" { //默认空密码用户名，无需认证
+			user, pass, ok := r.BasicAuth()
+			if !ok || user != username || pass != password {
+				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+				w.WriteHeader(http.StatusUnauthorized)
+				fmt.Fprintln(w, "Unauthorized")
+				return
+			}
 		}
 		handler.ServeHTTP(w, r)
+		
 	})
 }
 
@@ -52,10 +54,10 @@ func main() {
 
 	var crtPath =flag.String("crt","D:/study/ssh-key/webdemo/server.crt","crt路径")
 	var keyPath =flag.String("key","D:/study/ssh-key/webdemo/server.key","key路径")
-	var username = flag.String("u","admin","用户名") //默认用户名admin
+	var username = flag.String("u","","用户名") //默认用户名admin
 	var password string
-	flag.StringVar(&password,"password","admin","密码") //长参数-password
-	flag.StringVar(&password,"p","admin","密码") //短参数-p
+	flag.StringVar(&password,"password","","密码") //长参数-password
+	flag.StringVar(&password,"p","","密码") //短参数-p
 	port := flag.Int("port",80,"端口")
 	
 	flag.Parse()
@@ -71,7 +73,7 @@ func main() {
 	authHandler := basicAuth(fileServer, *username, password)
 
 
-	log.Printf("\n用户名"+*username+" 密码"+password)
+	log.Printf("\n用户名‘"+*username+"’ 密码‘"+password+"’")
 
 
 

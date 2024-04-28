@@ -16,12 +16,36 @@ before:
     - go generate ./...
 
 builds:
-  - env:
+  - main: ./webdemo.go
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
       - windows
-      - darwin
+      # - darwin
+      - android
+    goarch:
+      # - "386"
+      - amd64
+      # - arm
+      - arm64
+      # - loong64
+      - mips
+      # - mipsle
+      # - mips64
+      # - mips64le
+    ignore:
+      # we only need the arm64 build on android
+      # - goos: android
+      #   goarch: arm
+      - goos: android
+        goarch: mips
+      - goos: android
+        goarch: amd64
+      - goos: windows
+        goarch: arm64
+      - goos: linux
+        goarch: arm64
 
 archives:
   - format: tar.gz
@@ -31,6 +55,7 @@ archives:
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
+      {{- else if eq .Arch "arm64" }}aarch64
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     # use zip for windows archives

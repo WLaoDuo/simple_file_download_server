@@ -77,11 +77,11 @@ func main() {
 
 
 
-	var flag_443_80 int
+	https_http := false
 	
 	http.Handle("/", authHandler) //当前目录
 
-	if result1+result2 == 0 || flag_443_80==443{
+	if result1+result2 == 0 || https_http==false{
 		*port=443
 		log.Println("文件路径 "+*path_show)
 		log.Printf("%d端口启用https",*port)
@@ -91,7 +91,7 @@ func main() {
 		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", *port),*crtPath,*keyPath, nil) //https监听8080端口，外网可访问https://ip:8080
 		if err != nil {
 			log.Printf(err.Error(),"证书或私钥有问题，请检查")
-			flag_443_80=80
+			https_http=true
 		}
 		// http.ListenAndServeTLS(":8443", "cert.pem", "key.pem", nil)可以使用crypto/tls中的generate_cert.go来生成cert.pem和key.pem
 		//go run $GOROOT/src/crypto/tls/generate_cert.go --host 域名/IP
@@ -99,7 +99,7 @@ func main() {
 		//也可用https://github.com/FiloSottile/mkcert项目签发证书
 		//.\mkcert-v1.4.4-windows-amd64.exe -key-file ./127.0.0.1-key -cert-file ./127.0.0.1.crt  127.0.0.1
 	} 
-	if result1+result2!=0 || flag_443_80==80 {
+	if result1+result2!=0 || https_http==true {
 		*port=80
 		log.Println("文件路径未指定或文件路径不存在，默认为当前目录")
 		log.Printf("找不到证书和私钥，%d端口启用http",*port)

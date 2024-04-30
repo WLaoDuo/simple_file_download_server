@@ -27,9 +27,10 @@ func exit_path(filename string) int {
 
 func basicAuth(handler http.Handler, username, password string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := r.RemoteAddr
-		// 打印请求信息及访问的 IP 地址
-		log.Printf("%s使用%s方式请求文件%s", ip, r.Method, *path_show+r.URL.Path)
+		ip := r.RemoteAddr // 访问的 IP 地址
+		ua := r.UserAgent()//r.Header.Get("User-Agent") 获取ua头
+		
+		log.Printf("%s 使用%s 头,%s方式请求文件%s", ip,ua, r.Method, *path_show+r.URL.Path)
 		if username != "" || password != "" { //默认空密码用户名，无需认证
 			user, pass, ok := r.BasicAuth()
 			if !ok || user != username || pass != password {

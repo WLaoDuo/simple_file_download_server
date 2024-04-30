@@ -13,7 +13,7 @@ before:
     # You may remove this if you don't use go modules.
     - go mod tidy
     # you may remove this if you don't need go generate
-    - go generate ./...
+    # - go generate ./...
 
 builds:
   - main: ./webdemo.go
@@ -23,29 +23,65 @@ builds:
       - linux
       - windows
       # - darwin
-      - android
+      # - android
     goarch:
       # - "386"
       - amd64
       # - arm
-      - arm64
+      # - arm64
       # - loong64
-      - mips
-      # - mipsle
+      - mipsle
+      # - mips
       # - mips64
       # - mips64le
+    gomips:
+      # - hardfloat
+      - softfloat
     ignore:
       # we only need the arm64 build on android
       # - goos: android
       #   goarch: arm
-      - goos: android
-        goarch: mips
-      - goos: android
-        goarch: amd64
       - goos: windows
-        goarch: arm64
-      - goos: linux
-        goarch: arm64
+        goarch: mipsle
+
+upx: #压缩编译后的二进制文件大小
+  - # Whether to enable it or not.
+    #
+    # Templates: allowed (since v1.21)
+    enabled: true
+
+    # Filter by build ID.
+    # ids: [build1, build2]
+
+    # Filter by GOOS.
+    #
+    # Since: v1.19
+    goos: [windows]
+
+    # Filter by GOARCH.
+    #
+    # Since: v1.19
+    goarch: [amd64]
+
+    # Filter by GOARM.
+    #
+    # Since: v1.19
+    # goarm: [8]
+
+    # Filter by GOAMD64.
+    #
+    # Since: v1.19
+    goamd64: [v1]
+    
+    # Compress argument.
+    # Valid options are from '1' (faster) to '9' (better), and 'best'.
+    compress: best
+
+    # Whether to try LZMA (slower).
+    lzma: true
+
+    # Whether to try all methods and filters (slow).
+    brute: true
 
 archives:
   - format: tar.gz

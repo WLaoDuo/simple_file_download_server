@@ -51,7 +51,7 @@ func basicAuth(handler http.Handler, username, password string) http.Handler {
 				log.Printf("\033[32m%s \033[0m使用%s 头,%s方式请求文件%s", ip, ua, r.Method, *path_show+r.URL.Path)
 			}
 		} else {
-			log.Printf("\033[32m%s \033[0m使用%s 头,%s方式请求文件%s", ip, ua, r.Method, *path_show+r.URL.Path)
+			log.Printf("\033[33m%s \033[0m使用%s 头,%s方式请求文件%s", ip, ua, r.Method, *path_show+r.URL.Path)
 		}
 		handler.ServeHTTP(w, r)
 

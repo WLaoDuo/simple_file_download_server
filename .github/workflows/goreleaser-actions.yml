@@ -44,3 +44,64 @@ jobs:
             ./dist/*.zip
             ./dist/simple_file_download_server[\w\.\-\_]+_checksums.txt
 
+
+
+
+
+
+
+
+
+
+# # .github/workflows/release.yml
+# name: go原生编译
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       platform:
+#         description: 'platform'
+#         required: true
+#         default: 'ubuntu-20.04'
+#         type: choice
+#         options:
+#           - 'windows-latest'
+#           - 'macos-latest'
+#           - 'ubuntu-20.04'
+
+# jobs:
+#   buildAndDeploy:
+#     runs-on:  ubuntu-20.04
+#     # 交叉构建,多平台交叉编译
+#     strategy:
+#       matrix:
+#         include:
+#           - goarch: amd64
+#             goos: linux
+#           - goarch: amd64
+#             goos: darwin
+#           - goarch: amd64
+#             goos: windows
+#     # 使用checkout
+#     steps:
+#     - uses: actions/checkout@v3
+#     - name: Set up Go
+#       uses: actions/setup-go@v3
+#       with: 
+#         go-version: '>=1.16.0'
+#     - run: go version
+#     - name: make
+#       run: go build -o ./out/ ./webdemo.go
+#       env:
+#         GOOS: ${{ matrix.goos }}
+#         GOARCH: ${{ matrix.goarch }}
+#         CGO_ENABLED: 0
+#     # - name: Packaging...
+#     #   run: tar czf nodeUpgrade-${{ matrix.goos }}-${{ matrix.goarch }}.tgz nodeUpgrade
+    
+#     - name: Upload archive
+#       uses: actions/upload-artifact@v3
+#       with:
+#           name: output-${{ inputs.platform }}.zip
+#           path: ./out/*
+#           retention-days: 3

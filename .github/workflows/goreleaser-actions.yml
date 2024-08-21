@@ -22,10 +22,6 @@ jobs:
         with:
           fetch-depth: 0
       
-      - run: |
-        echo "GIT_TAG=`echo $(git describe --tags --always)`" >> $GITHUB_ENV
-        echo "GIT_COMMIT_HASH=`echo $(git rev-parse HEAD)`" >> $GITHUB_ENV
-
       -
         name: Set up Go
         uses: actions/setup-go@v4

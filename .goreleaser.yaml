@@ -26,7 +26,7 @@ builds:
       - -X webdemo/appinfo.Commit={{ .FullCommit }}
       # - -X main.Arch={{ .Arch }}
       # - -X main.Os={{ .Os }}
-      #{{.名称模板}} https://goreleaser.com/customization/templates/#common-fields
+      # {{.名称模板}} https://goreleaser.com/customization/templates/#common-fields
 
     # gcflags:
     #   - all=-N -l

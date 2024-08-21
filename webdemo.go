@@ -149,15 +149,19 @@ func main() {
 	var showVersion bool
 	flag.BoolVar(&showVersion, "version", false, "-version输出版本信息")
 	flag.Parse()
+
 	if showVersion {
-		fmt.Println(webdemo.AppInfo)
+		fmt.Printf("%+v", webdemo.AppInfo)
+		os.Exit(0)
 	}
+
 	// result1 := exit_path(*crtPath) //crt证书是否存在
 	// result2 := exit_path(*keyPath) //key密钥是否存在
 	if exit_path(*path_show) != 0 {
 		log.Println("\033[31m ", *path_show, "\033[0m当前文件（文件夹）路径不存在，请重新输入")
 		os.Exit(1)
 	}
+
 	fileServer := http.FileServer(http.Dir(*path_show))
 	authHandler := basicAuth(fileServer, *username, password, *path_show)
 

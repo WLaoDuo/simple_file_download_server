@@ -4,11 +4,13 @@ name: goreleaser-actions
 on:
   pull_request:
   push:
+    tags:
+      - "v*"
     branches:
       - dev
 
-permissions:
-  contents: read #write
+# permissions:
+#   contents: read #write
 
 jobs:
   goreleaser-actions:
@@ -19,9 +21,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      
+      - run: |
+        echo "GIT_TAG=`echo $(git describe --tags --always)`" >> $GITHUB_ENV
+        echo "GIT_COMMIT_HASH=`echo $(git rev-parse HEAD)`" >> $GITHUB_ENV
+
       -
         name: Set up Go
         uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.21.6'
+      - run: go version
+
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
@@ -32,6 +43,18 @@ jobs:
           args: release --snapshot --clean #--snapshot是不正式版本，取消git tag校验
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+      - name: Github Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          # prerelease: ${{ contains(env.GIT_TAG, 'rc') }}
+          # files: './dist/*'
+          files: |
+            ./dist/*.tar.gz
+            ./dist/*.zip
+            ./dist/simple_file_download_server[\w\.\-\_]+_checksums.txt
+          
       -
         name: Upload assets
         uses: actions/upload-artifact@v4

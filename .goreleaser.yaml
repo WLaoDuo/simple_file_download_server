@@ -19,6 +19,17 @@ builds:
   - main: ./webdemo.go
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w  -X webdemo/appinfo.BuiltBy=goreleaser
+      - -X webdemo/appinfo.Tag={{ .Tag }}
+      - -X webdemo/appinfo.Date={{ .Date }}
+      - -X webdemo/appinfo.Commit={{ .FullCommit }}
+      # - -X main.Arch={{ .Arch }}
+      # - -X main.Os={{ .Os }}
+      #{{.名称模板}} https://goreleaser.com/customization/templates/#common-fields
+
+    # gcflags:
+    #   - all=-N -l
     goos:
       - linux
       - windows

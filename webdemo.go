@@ -33,7 +33,7 @@ import (
 // 	}
 // }
 
-func basicAuth(handler http.Handler, username, password,path string) http.Handler {
+func basicAuth(handler http.Handler, username, password, path string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := r.RemoteAddr  // 访问的 IP 地址
 		ua := r.UserAgent() //r.Header.Get("User-Agent") 获取ua头
@@ -135,9 +135,7 @@ func quicgo_ListenAndServeTLS(addr, certFile, keyFile string, handler http.Handl
 	}
 }
 
-
 func main() {
-	
 	var crtPath = flag.String("crt", "D:/study/ssh-key/webdemo/server.crt", "crt路径")
 	var keyPath = flag.String("key", "D:/study/ssh-key/webdemo/server.key", "key路径")
 	var username = flag.String("u", "", "用户名") //默认用户名admin
@@ -150,7 +148,6 @@ func main() {
 
 	// result1 := exit_path(*crtPath) //crt证书是否存在
 	// result2 := exit_path(*keyPath) //key密钥是否存在
-
 
 	fileServer := http.FileServer(http.Dir(*path_show))
 	authHandler := basicAuth(fileServer, *username, password, *path_show)

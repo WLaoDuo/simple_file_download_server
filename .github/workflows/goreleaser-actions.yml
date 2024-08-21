@@ -2,12 +2,11 @@ name: goreleaser-actions
   #https://github.com/goreleaser/goreleaser-action
   #https://goreleaser.com/customization/builds/ 文档
 on:
-  # pull_request:
   push:
+    branches:
+      - dev
     tags:
       - "v*"
-      branches:
-        - dev
 
 # permissions:
 #   contents: read #write

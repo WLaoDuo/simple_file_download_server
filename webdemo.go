@@ -33,7 +33,7 @@ import (
 // 	}
 // }
 
-func basicAuth(handler http.Handler, username, password string) http.Handler {
+func basicAuth(handler http.Handler, username, password,path string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := r.RemoteAddr  // 访问的 IP 地址
 		ua := r.UserAgent() //r.Header.Get("User-Agent") 获取ua头
@@ -45,13 +45,13 @@ func basicAuth(handler http.Handler, username, password string) http.Handler {
 				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 				w.WriteHeader(http.StatusUnauthorized)
 				fmt.Fprintln(w, "Unauthorized")
-				log.Printf("\033[31m 非法访问者 %s \033[0m 使用%s 头,%s方式尝试请求文件\033[31m%s\033[0m", ip, ua, r.Method, *path_show+r.URL.Path)
+				log.Printf("\033[31m 非法访问者 %s \033[0m 使用%s 头,%s方式尝试请求文件\033[31m%s\033[0m", ip, ua, r.Method, path+r.URL.Path)
 				return
 			} else {
-				log.Printf("\033[32m%s \033[0m使用%s 头,%s方式请求文件%s", ip, ua, r.Method, *path_show+r.URL.Path)
+				log.Printf("\033[32m%s \033[0m使用%s 头,%s方式请求文件%s", ip, ua, r.Method, path+r.URL.Path)
 			}
 		} else {
-			log.Printf("\033[33m%s \033[0m使用%s 头,%s方式请求文件%s", ip, ua, r.Method, *path_show+r.URL.Path)
+			log.Printf("\033[33m%s \033[0m使用%s 头,%s方式请求文件%s", ip, ua, r.Method, path+r.URL.Path)
 		}
 		handler.ServeHTTP(w, r)
 
@@ -135,10 +135,9 @@ func quicgo_ListenAndServeTLS(addr, certFile, keyFile string, handler http.Handl
 	}
 }
 
-var path_show = flag.String("path", ".", "文件路径") //文件加载路径，绝对路径可以，相对路径也可以，但需要注意加引号
 
 func main() {
-
+	
 	var crtPath = flag.String("crt", "D:/study/ssh-key/webdemo/server.crt", "crt路径")
 	var keyPath = flag.String("key", "D:/study/ssh-key/webdemo/server.key", "key路径")
 	var username = flag.String("u", "", "用户名") //默认用户名admin
@@ -146,14 +145,15 @@ func main() {
 	flag.StringVar(&password, "password", "", "密码") //长参数-password
 	flag.StringVar(&password, "p", "", "密码")        //短参数-p
 	port := flag.Int("port", 443, "端口")
-
+	var path_show = flag.String("path", ".", "文件路径") //文件加载路径，绝对路径可以，相对路径也可以，但需要注意加引号
 	flag.Parse()
 
 	// result1 := exit_path(*crtPath) //crt证书是否存在
 	// result2 := exit_path(*keyPath) //key密钥是否存在
 
+
 	fileServer := http.FileServer(http.Dir(*path_show))
-	authHandler := basicAuth(fileServer, *username, password)
+	authHandler := basicAuth(fileServer, *username, password, *path_show)
 
 	log.Printf("\n用户名‘\033[32m" + *username + "\033[0m’ 密码‘\033[32m" + password + "\033[0m’")
 

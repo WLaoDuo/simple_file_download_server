@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/quic-go/quic-go"
@@ -19,19 +20,19 @@ import (
 // blue := "\033[34m"
 // reset := "\033[0m"
 
-// func exit_path(filename string) int {
-// 	_, err := os.Stat(filename)
-// 	if err == nil {
-// 		// fmt.Printf("文件 %s 存在\n", filename)
-// 		return 0
-// 	} else if os.IsNotExist(err) {
-// 		// fmt.Printf("文件 %s 不存在\n", filename)
-// 		return 1
-// 	} else {
-// 		// fmt.Printf("检查文件时发生错误: %v\n", err)
-// 		return 2
-// 	}
-// }
+func exit_path(filename string) int {
+	_, err := os.Stat(filename)
+	if err == nil {
+		// fmt.Printf("文件 %s 存在\n", filename)
+		return 0
+	} else if os.IsNotExist(err) {
+		// fmt.Printf("文件 %s 不存在\n", filename)
+		return 1
+	} else {
+		// fmt.Printf("检查文件时发生错误: %v\n", err)
+		return 2
+	}
+}
 
 func basicAuth(handler http.Handler, username, password, path string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +149,10 @@ func main() {
 
 	// result1 := exit_path(*crtPath) //crt证书是否存在
 	// result2 := exit_path(*keyPath) //key密钥是否存在
-
+	if exit_path(*path_show) != 0 {
+		log.Println("\033[31m ", *path_show, "\033[0m当前文件（文件夹）路径不存在，请重新输入")
+		os.Exit(1)
+	}
 	fileServer := http.FileServer(http.Dir(*path_show))
 	authHandler := basicAuth(fileServer, *username, password, *path_show)
 

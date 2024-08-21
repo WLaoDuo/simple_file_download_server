@@ -148,8 +148,7 @@ func main() {
 	var path_show = flag.String("path", ".", "文件路径") //文件加载路径，绝对路径可以，相对路径也可以，但需要注意加引号
 	var showVersion bool
 	flag.BoolVar(&showVersion, "version", false, "-version输出版本信息")
-	
-  flag.Parse()
+	flag.Parse()
 
 	if showVersion {
 		fmt.Printf("%+v", webdemo.AppInfo)
@@ -162,7 +161,7 @@ func main() {
 		log.Println("\033[31m ", *path_show, "\033[0m当前文件（文件夹）路径不存在，请重新输入")
 		os.Exit(1)
 	}
-  
+
 	fileServer := http.FileServer(http.Dir(*path_show))
 	authHandler := basicAuth(fileServer, *username, password, *path_show)
 

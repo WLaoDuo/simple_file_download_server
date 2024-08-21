@@ -44,11 +44,11 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') #git push origin本地分支 release远程分支 v5.0版本号
         with:
           # prerelease: ${{ contains(env.GIT_TAG, 'rc') }}
-          files: './dist/*'
-          # files: |
-          #   ./dist/*.tar.gz
-          #   ./dist/*.zip
-          #   ./dist/simple_file_download_server[\w\.\-\_]+_checksums.txt
+          # files: './dist/*'
+          files: |
+            ./dist/*
+            ./dist/simple_file_download_server[\w\.\-\_]+_checksums.txt
+            !./dist/[\w]+\.[json|yaml]+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           

@@ -2,12 +2,12 @@ name: goreleaser-actions
   #https://github.com/goreleaser/goreleaser-action
   #https://goreleaser.com/customization/builds/ 文档
 on:
-  pull_request:
+  # pull_request:
   push:
     tags:
       - "v*"
-    branches:
-      - dev
+      branches:
+        - dev
 
 # permissions:
 #   contents: read #write
@@ -42,14 +42,16 @@ jobs:
         
       - name: Github Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') #git push origin本地分支 release远程分支 v5.0版本号
         with:
           # prerelease: ${{ contains(env.GIT_TAG, 'rc') }}
-          # files: './dist/*'
-          files: |
-            ./dist/*.tar.gz
-            ./dist/*.zip
-            ./dist/simple_file_download_server[\w\.\-\_]+_checksums.txt
+          files: './dist/*'
+          # files: |
+          #   ./dist/*.tar.gz
+          #   ./dist/*.zip
+          #   ./dist/simple_file_download_server[\w\.\-\_]+_checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
       -
         name: Upload assets

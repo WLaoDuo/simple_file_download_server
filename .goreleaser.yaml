@@ -19,6 +19,17 @@ builds:
   - main: ./webdemo.go
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w  -X webdemo/appinfo.BuiltBy=goreleaser
+      - -X webdemo/appinfo.Tag={{ .Tag }}
+      - -X webdemo/appinfo.Date={{ .Date }}
+      - -X webdemo/appinfo.Commit={{ .FullCommit }}
+      # - -X main.Arch={{ .Arch }}
+      # - -X main.Os={{ .Os }}
+      # {{.名称模板}} https://goreleaser.com/customization/templates/#common-fields
+
+    # gcflags:
+    #   - all=-N -l
     goos:
       - linux
       - windows
@@ -54,24 +65,16 @@ upx: #压缩编译后的二进制文件大小
     # ids: [build1, build2]
 
     # Filter by GOOS.
-    #
-    # Since: v1.19
-    goos: [windows]
+    goos: [linux]
 
     # Filter by GOARCH.
-    #
-    # Since: v1.19
-    goarch: [amd64]
+    goarch: [mipsle]
 
     # Filter by GOARM.
-    #
-    # Since: v1.19
     # goarm: [8]
 
     # Filter by GOAMD64.
-    #
-    # Since: v1.19
-    goamd64: [v1]
+    # goamd64: [v1]
     
     # Compress argument.
     # Valid options are from '1' (faster) to '9' (better), and 'best'.

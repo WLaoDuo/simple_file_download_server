@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	webdemo "webdemo/appinfo"
 
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
@@ -145,7 +146,14 @@ func main() {
 	flag.StringVar(&password, "p", "", "密码")        //短参数-p
 	port := flag.Int("port", 443, "端口")
 	var path_show = flag.String("path", ".", "文件路径") //文件加载路径，绝对路径可以，相对路径也可以，但需要注意加引号
+	var showVersion bool
+	flag.BoolVar(&showVersion, "version", false, "-version输出版本信息")
 	flag.Parse()
+
+	if showVersion {
+		fmt.Printf("%+v", webdemo.AppInfo)
+		os.Exit(0)
+	}
 
 	// result1 := exit_path(*crtPath) //crt证书是否存在
 	// result2 := exit_path(*keyPath) //key密钥是否存在
@@ -153,6 +161,7 @@ func main() {
 		log.Println("\033[31m ", *path_show, "\033[0m当前文件（文件夹）路径不存在，请重新输入")
 		os.Exit(1)
 	}
+
 	fileServer := http.FileServer(http.Dir(*path_show))
 	authHandler := basicAuth(fileServer, *username, password, *path_show)
 

@@ -2,13 +2,14 @@ name: goreleaser-actions
   #https://github.com/goreleaser/goreleaser-action
   #https://goreleaser.com/customization/builds/ 文档
 on:
-  pull_request:
   push:
     branches:
       - dev
+    tags:
+      - "v*"
 
-permissions:
-  contents: read #write
+# permissions:
+#   contents: read #write
 
 jobs:
   goreleaser-actions:
@@ -19,9 +20,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      
       -
         name: Set up Go
         uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.21.6'
+      - run: go version
+
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
@@ -32,6 +38,20 @@ jobs:
           args: release --snapshot --clean #--snapshot是不正式版本，取消git tag校验
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+      - name: Github Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') #git push origin本地分支 release远程分支 v5.0版本号
+        with:
+          # prerelease: ${{ contains(env.GIT_TAG, 'rc') }}
+          # files: './dist/*'
+          files: |
+            ./dist/*
+            ./dist/simple_file_download_server[\w\.\-\_]+_checksums.txt
+            !./dist/[\w]+\.[json|yaml]+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
       -
         name: Upload assets
         uses: actions/upload-artifact@v4

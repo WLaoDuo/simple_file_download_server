@@ -17,8 +17,8 @@ before:
 
 report_sizes: true
 
-gomod:
-  proxy: true
+# gomod:
+#   proxy: true
 metadata:
   mod_timestamp: "{{ .CommitTimestamp }}"
 

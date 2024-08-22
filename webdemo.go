@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	webdemo "webdemo/appinfo"
+	appVersion "webdemo/appinfo"
 
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
@@ -151,7 +151,8 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("%+v", webdemo.AppInfo)
+		// fmt.Printf("%+v\n", appVersion.AppInfo)
+		fmt.Println(appVersion.BuildVersion())
 		os.Exit(0)
 	}
 

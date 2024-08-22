@@ -6,7 +6,7 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
-version: 1
+version: 2
 
 before:
   hooks:
@@ -24,6 +24,7 @@ builds:
       - -X webdemo/appinfo.Tag={{ .Tag }}
       - -X webdemo/appinfo.Date={{ .Date }}
       - -X webdemo/appinfo.Commit={{ .FullCommit }}
+      - -X webdemo/appinfo.TreeState={{ .IsGitDirty }}
       # - -X main.Arch={{ .Arch }}
       # - -X main.Os={{ .Os }}
       # {{.名称模板}} https://goreleaser.com/customization/templates/#common-fields

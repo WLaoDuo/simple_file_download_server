@@ -139,7 +139,7 @@ checksum:
   # Disable the generation/upload of the checksum file.
   # disable: true
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Version }}-SNAPSHOT-{{.ShortCommit}}"
 archives:
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of `uname`.

@@ -34,7 +34,7 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2" # or 'latest', 'nightly', semver
-          args: release --snapshot --clean #--snapshot是不正式版本，取消git tag校验 --clean清空dist目录
+          args: release --clean #--snapshot 不正式版本，取消git tag校验 --clean清空dist目录
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         

@@ -229,7 +229,6 @@ func main() {
 		}
 		log.Println(err_tls)
 		log.Printf("找不到证书和私钥，\033[33m%d\033[0m端口启用http", *port)
-
 		// http.Handle("/", authHandler) //当前目录
 		err_http := http.ListenAndServe(":"+strconv.Itoa(*port), mux)
 		//监听8080端口，外网可访问http://ip:port

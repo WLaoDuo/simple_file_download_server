@@ -46,7 +46,8 @@ func basicAuth(handler http.Handler, username, password, path string) http.Handl
 			if !ok || user != username || pass != password {
 				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 				w.WriteHeader(http.StatusUnauthorized)
-				fmt.Fprintln(w, "Unauthorized")
+				fmt.Fprintln(w, "Unauthorized") //网页端认证失败返回文字
+
 				log.Printf("\033[31m 非法访问者 %s \033[0m 使用%s 头,%s方式尝试请求文件\033[31m%s\033[0m", ip, ua, r.Method, path+r.URL.Path)
 				return
 			} else {
@@ -173,8 +174,10 @@ func main() {
 
 	cert, err_tls := tls.LoadX509KeyPair(*crtPath, *keyPath)
 
+	log.Println("文件路径 \033[33m" + *path_show + "\033[0m")
+
 	if err_tls == nil {
-		log.Println("文件路径 \033[33m" + *path_show + "\033[0m")
+		// log.Println("文件路径 \033[33m" + *path_show + "\033[0m")
 		log.Printf("\033[33m%d\033[0m端口启用https", *port)
 		_ = cert
 
@@ -225,7 +228,6 @@ func main() {
 			*port = 80
 		}
 		log.Println(err_tls)
-		log.Println("文件路径未指定或文件路径不存在，默认为当前目录")
 		log.Printf("找不到证书和私钥，\033[33m%d\033[0m端口启用http", *port)
 
 		// http.Handle("/", authHandler) //当前目录

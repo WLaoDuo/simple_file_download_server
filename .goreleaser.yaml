@@ -6,7 +6,7 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
-version: 1
+version: 2
 
 before:
   hooks:
@@ -15,15 +15,27 @@ before:
     # you may remove this if you don't need go generate
     # - go generate ./...
 
+report_sizes: true
+
+# gomod:
+#   proxy: true
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
 builds:
   - main: ./webdemo.go
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=0 # 禁用 CGO
+    
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath # 优化二进制大小。
     ldflags:
       - -s -w  -X webdemo/appinfo.BuiltBy=goreleaser
       - -X webdemo/appinfo.Tag={{ .Tag }}
       - -X webdemo/appinfo.Date={{ .Date }}
       - -X webdemo/appinfo.Commit={{ .FullCommit }}
+      - -X webdemo/appinfo.TreeState={{ .Branch }}
       # - -X main.Arch={{ .Arch }}
       # - -X main.Os={{ .Os }}
       # {{.名称模板}} https://goreleaser.com/customization/templates/#common-fields
@@ -54,6 +66,9 @@ builds:
       #   goarch: arm
       - goos: windows
         goarch: mipsle
+
+# universal_binaries:
+#   - replace: false # 禁用生成通用 macOS 二进制文件。
 
 upx: #压缩编译后的二进制文件大小
   - # Whether to enable it or not.
@@ -86,6 +101,45 @@ upx: #压缩编译后的二进制文件大小
     # Whether to try all methods and filters (slow).
     brute: true
 
+
+signs:
+  - artifacts: checksum
+checksum:
+  name_template: "checksums.txt"
+  # Algorithm to be used.
+  #
+  # Accepted options are:
+  # - sha256
+  # - sha512
+  # - sha1
+  # - crc32
+  # - md5
+  # - sha224
+  # - sha384
+  # - sha3-256
+  # - sha3-512
+  # - sha3-224
+  # - sha3-384
+  # - blake2s
+  # - blake2b
+  #
+  # Default: 'sha256'.
+  algorithm: sha256
+
+  # If true, will create one checksum file for each artifact.
+  split: false
+  # IDs of artifacts to include in the checksums file.
+  #
+  # If left empty, all published binaries, archives, linux packages and source archives
+  # are included in the checksums file.
+  # ids:
+  #   - foo
+  #   - bar
+
+  # Disable the generation/upload of the checksum file.
+  # disable: true
+snapshot:
+  version_template: "{{ .Version }}-SNAPSHOT-{{.ShortCommit}}"
 archives:
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of `uname`.
@@ -101,7 +155,7 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
-
+  
 changelog:
   sort: asc
   filters:

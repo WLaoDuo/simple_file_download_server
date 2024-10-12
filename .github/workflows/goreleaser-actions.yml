@@ -30,12 +30,11 @@ jobs:
 
       -
         name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6 #https://github.com/goreleaser/goreleaser-action
         with:
           distribution: goreleaser
-          # 'latest', 'nightly', or a semver
-          version: latest
-          args: release --snapshot --clean #--snapshot是不正式版本，取消git tag校验
+          version: "~> v2" # or 'latest', 'nightly', semver
+          args: release --clean #--snapshot 不正式版本，取消git tag校验 --clean清空dist目录
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         

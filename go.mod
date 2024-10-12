@@ -2,7 +2,10 @@ module webdemo
 
 go 1.21.6
 
-require github.com/quic-go/quic-go v0.46.0
+require (
+	github.com/caarlos0/go-version v0.1.1
+	github.com/quic-go/quic-go v0.46.0
+)
 
 require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect

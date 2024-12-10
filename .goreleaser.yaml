@@ -66,6 +66,24 @@ builds:
       #   goarch: arm
       - goos: windows
         goarch: mipsle
+    
+    # Optionally override the matrix generation and specify only the final list
+    # of targets.
+    #
+    # Format is `{goos}_{goarch}` with their respective suffixes when
+    # applicable: `_{goarm}`, `_{goamd64}`, `_{gomips}`, `_{go386}`,
+    #             `_{goriscv64}`, `_{goarm64}`, `_{goppc64}`.
+    #
+    # Special values:
+    # - go_118_first_class: evaluates to the first-class ports of go1.18.
+    # - go_first_class: evaluates to latest stable go first-class ports,
+    #   currently same as 1.18.
+    #
+    # This overrides `goos`, `goarch`, `goarm`, `gomips`, `goamd64`, `go386`,
+    #                `goriscv64`, `goarm64`, `goppc64`, and `ignores`.
+    targets:
+      - linux_amd64_v1
+      - windows_amd64_v3
 
 # universal_binaries:
 #   - replace: false # 禁用生成通用 macOS 二进制文件。

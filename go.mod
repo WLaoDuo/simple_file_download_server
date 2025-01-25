@@ -1,7 +1,6 @@
 module webdemo
 
-go 1.21.6
-toolchain go1.22.5
+go 1.23.5
 
 require (
 	github.com/caarlos0/go-version v0.1.1

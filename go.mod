@@ -3,7 +3,7 @@ module webdemo
 go 1.23.5
 
 require (
-	github.com/caarlos0/go-version v0.1.1
+	github.com/caarlos0/go-version v0.2.0
 	github.com/quic-go/quic-go v0.48.2
 )
 

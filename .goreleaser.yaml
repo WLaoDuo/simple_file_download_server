@@ -102,8 +102,9 @@ upx: #压缩编译后的二进制文件大小
     brute: true
 
 
-signs:
-  - artifacts: checksum
+# signs:
+#   - artifacts: checksum
+
 checksum:
   name_template: "checksums.txt"
   # Algorithm to be used.

@@ -138,6 +138,61 @@ func quicgo_ListenAndServeTLS(addr, certFile, keyFile string, handler http.Handl
 	}
 }
 
+// 获取本机有效的局域网IP地址（IPv4和IPv6）
+func getIP() ([]net.IP, []net.IP, error) {
+	var ipv4Addrs []net.IP
+	var ipv6Addrs []net.IP
+
+	// 获取所有网络接口
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, iface := range interfaces {
+		// 过滤无效接口（未启用或回环接口）
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+
+		// 获取接口地址
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			default:
+				continue
+			}
+
+			// 过滤回环地址
+			if ip.IsLoopback() {
+				continue
+			}
+
+			// 分类处理
+			if ipv4 := ip.To4(); ipv4 != nil {
+				ipv4Addrs = append(ipv4Addrs, ipv4)
+			} else if ipv6 := ip.To16(); ipv6 != nil {
+				// 过滤IPv6链路本地地址（可选）
+				// if ipv6.IsLinkLocalUnicast() {
+				// 	continue
+				// }
+				ipv6Addrs = append(ipv6Addrs, ipv6)
+			}
+		}
+	}
+
+	return ipv4Addrs, ipv6Addrs, nil
+}
+
 func main() {
 	var crtPath = flag.String("crt", "D:/study/ssh-key/webdemo/server.crt", "crt路径")
 	var keyPath = flag.String("key", "D:/study/ssh-key/webdemo/server.key", "key路径")
@@ -179,6 +234,20 @@ func main() {
 	if err_tls == nil {
 		// log.Println("文件路径 \033[33m" + *path_show + "\033[0m")
 		log.Printf("\033[33m%d\033[0m端口启用https", *port)
+
+		ipv4, ipv6, err := getIP()
+		if err != nil {
+			log.Println("Error:", err)
+		}
+		// fmt.Println("IPv4 Addresses:")
+		for _, ip := range ipv4 {
+			log.Printf("ipv4地址 https://%s:%d", ip, *port)
+		}
+		// log.Println("\nIPv6 Addresses:")
+		for _, ip := range ipv6 {
+			log.Printf("ipv6地址 https://[%s]:%d", ip, *port)
+		}
+
 		_ = cert
 
 		// srv := http.Server{ //http2
@@ -229,6 +298,19 @@ func main() {
 		}
 		log.Println(err_tls)
 		log.Printf("找不到证书和私钥，\033[33m%d\033[0m端口启用http", *port)
+
+		ipv4, ipv6, err := getIP()
+		if err != nil {
+			log.Println("Error:", err)
+		}
+		// fmt.Println("IPv4 Addresses:")
+		for _, ip := range ipv4 {
+			log.Printf("ipv4地址 https://%s:%d", ip, *port)
+		}
+		// log.Println("\nIPv6 Addresses:")
+		for _, ip := range ipv6 {
+			log.Printf("ipv6地址 https://[%s]:%d", ip, *port)
+		}
 
 		// http.Handle("/", authHandler) //当前目录
 		err_http := http.ListenAndServe(":"+strconv.Itoa(*port), mux)

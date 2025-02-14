@@ -109,6 +109,11 @@ func quicgo_ListenAndServeTLS(addr, certFile, keyFile string, handler http.Handl
 				MinVersion:               tls.VersionTLS13,
 				NextProtos:               []string{"h3", "h2", "http/1.1"},
 				PreferServerCipherSuites: true,
+				CurvePreferences:         []tls.CurveID{tls.X25519, tls.CurveP256},
+				CipherSuites: []uint16{
+					tls.TLS_AES_128_GCM_SHA256,
+					tls.TLS_AES_256_GCM_SHA384,
+				},
 			}),
 		QUICConfig: &quic.Config{
 			Allow0RTT:       true,
@@ -193,6 +198,20 @@ func getIP() ([]net.IP, []net.IP, error) {
 	return ipv4Addrs, ipv6Addrs, nil
 }
 
+func logIPAddresses(port int) {
+	ipv4, ipv6, err := getIP()
+	if err != nil {
+		log.Printf("获取IP地址失败: %v", err)
+		// return
+	}
+	for _, ip := range ipv4 {
+		log.Printf("IPv4地址: https://%s:%d", ip, port)
+	}
+	for _, ip := range ipv6 {
+		log.Printf("IPv6地址: https://[%s]:%d", ip, port)
+	}
+}
+
 func main() {
 	var crtPath = flag.String("crt", "D:/study/ssh-key/webdemo/server.crt", "crt路径")
 	var keyPath = flag.String("key", "D:/study/ssh-key/webdemo/server.key", "key路径")
@@ -235,18 +254,7 @@ func main() {
 		// log.Println("文件路径 \033[33m" + *path_show + "\033[0m")
 		log.Printf("\033[33m%d\033[0m端口启用https", *port)
 
-		ipv4, ipv6, err := getIP()
-		if err != nil {
-			log.Println("Error:", err)
-		}
-		// fmt.Println("IPv4 Addresses:")
-		for _, ip := range ipv4 {
-			log.Printf("ipv4地址 https://%s:%d", ip, *port)
-		}
-		// log.Println("\nIPv6 Addresses:")
-		for _, ip := range ipv6 {
-			log.Printf("ipv6地址 https://[%s]:%d", ip, *port)
-		}
+		logIPAddresses(*port)
 
 		_ = cert
 
@@ -299,18 +307,7 @@ func main() {
 		log.Println(err_tls)
 		log.Printf("找不到证书和私钥，\033[33m%d\033[0m端口启用http", *port)
 
-		ipv4, ipv6, err := getIP()
-		if err != nil {
-			log.Println("Error:", err)
-		}
-		// fmt.Println("IPv4 Addresses:")
-		for _, ip := range ipv4 {
-			log.Printf("ipv4地址 https://%s:%d", ip, *port)
-		}
-		// log.Println("\nIPv6 Addresses:")
-		for _, ip := range ipv6 {
-			log.Printf("ipv6地址 https://[%s]:%d", ip, *port)
-		}
+		logIPAddresses(*port)
 
 		// http.Handle("/", authHandler) //当前目录
 		err_http := http.ListenAndServe(":"+strconv.Itoa(*port), mux)

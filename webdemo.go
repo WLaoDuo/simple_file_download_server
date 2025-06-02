@@ -11,6 +11,7 @@ import (
 	"strconv"
 	appVersion "webdemo/appinfo"
 
+	"github.com/fatih/color"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 )
@@ -48,13 +49,13 @@ func basicAuth(handler http.Handler, username, password, path string) http.Handl
 				w.WriteHeader(http.StatusUnauthorized)
 				fmt.Fprintln(w, "Unauthorized") //网页端认证失败返回文字
 
-				log.Printf("\033[31m 非法访问者 %s \033[0m 使用%s 头,%s方式尝试请求文件\033[31m%s\033[0m", ip, ua, r.Method, path+r.URL.Path)
+				log.Printf("%s 使用%s 头,%s方式尝试请求文件%s", color.RedString("非法访问者 "+ip), ua, r.Method, color.RedString(path+r.URL.Path))
 				return
 			} else {
-				log.Printf("\033[32m%s \033[0m使用%s 头,%s方式请求文件%s", ip, ua, r.Method, path+r.URL.Path)
+				log.Printf("%s 使用%s 头,%s方式请求文件%s", color.GreenString(ip), ua, r.Method, path+r.URL.Path)
 			}
 		} else {
-			log.Printf("\033[33m%s \033[0m使用%s 头,%s方式请求文件%s", ip, ua, r.Method, path+r.URL.Path)
+			log.Printf("%s 使用%s 头,%s方式请求文件%s", color.YellowString(ip), ua, r.Method, path+r.URL.Path)
 		}
 		handler.ServeHTTP(w, r)
 
@@ -246,14 +247,18 @@ func main() {
 	// result1 := exit_path(*crtPath) //crt证书是否存在
 	// result2 := exit_path(*keyPath) //key密钥是否存在
 	if exit_path(*path_show) != 0 {
-		log.Println("\033[31m ", *path_show, "\033[0m当前文件（文件夹）路径不存在，请重新输入")
+		color.Green(*path_show)
+		log.Printf("当前文件（文件夹）路径不存在，请重新输入\n")
 		os.Exit(1)
 	}
 
 	fileServer := http.FileServer(http.Dir(*path_show))
 	authHandler := basicAuth(fileServer, *username, password, *path_show)
 
-	log.Printf("\n用户名‘\033[32m" + *username + "\033[0m’ 密码‘\033[32m" + password + "\033[0m’")
+	// fmt.Println("This", color.RedString("warning"), "should be not neglected.")
+	// fmt.Printf("%v %v\n", color.GreenString("Info:"), "an important message.")
+
+	log.Println("\n用户名‘" + color.GreenString(*username) + "’ 密码‘" + color.GreenString(password) + "’")
 
 	mux := http.NewServeMux()
 
@@ -265,11 +270,10 @@ func main() {
 
 	cert, err_tls := tls.LoadX509KeyPair(*crtPath, *keyPath)
 
-	log.Println("文件路径 \033[33m" + *path_show + "\033[0m")
+	log.Println("文件路径" + color.GreenString(*path_show))
 
 	if err_tls == nil {
-		// log.Println("文件路径 \033[33m" + *path_show + "\033[0m")
-		log.Printf("\033[33m%d\033[0m端口启用https", *port)
+		log.Printf("%s端口启用https", color.GreenString(strconv.Itoa(*port)))
 
 		logIPAddresses(*port, "https")
 
@@ -322,7 +326,7 @@ func main() {
 			*port = 80
 		}
 		log.Println(err_tls)
-		log.Printf("找不到证书和私钥，\033[33m%d\033[0m端口启用http", *port)
+		log.Printf("找不到证书和私钥，%v端口启用http", color.GreenString(strconv.Itoa(*port)))
 
 		logIPAddresses(*port, "http")
 

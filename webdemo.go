@@ -198,18 +198,29 @@ func getIP() ([]net.IP, []net.IP, error) {
 	return ipv4Addrs, ipv6Addrs, nil
 }
 
-func logIPAddresses(port int) {
+func logIPAddresses(port int, status string) {
 	ipv4, ipv6, err := getIP()
 	if err != nil {
 		log.Printf("获取IP地址失败: %v", err)
 		// return
 	}
-	for _, ip := range ipv4 {
-		log.Printf("IPv4地址: https://%s:%d", ip, port)
+	if status == "https" {
+		for _, ip := range ipv4 {
+			log.Printf("IPv4地址: https://%s:%d", ip, port)
+		}
+		for _, ip := range ipv6 {
+			log.Printf("IPv6地址: https://[%s]:%d", ip, port)
+		}
 	}
-	for _, ip := range ipv6 {
-		log.Printf("IPv6地址: https://[%s]:%d", ip, port)
+	if status == "http" {
+		for _, ip := range ipv4 {
+			log.Printf("IPv4地址: http://%s:%d", ip, port)
+		}
+		for _, ip := range ipv6 {
+			log.Printf("IPv6地址: http://[%s]:%d", ip, port)
+		}
 	}
+
 }
 
 func main() {
@@ -223,6 +234,7 @@ func main() {
 	var path_show = flag.String("path", ".", "文件路径") //文件加载路径，绝对路径可以，相对路径也可以，但需要注意加引号
 	var showVersion bool
 	flag.BoolVar(&showVersion, "version", false, "-version输出版本信息")
+	// var bandwidthRate = flag.Int64("speed", 10, "带宽限制（MB/秒）")
 	flag.Parse()
 
 	if showVersion {
@@ -244,6 +256,11 @@ func main() {
 	log.Printf("\n用户名‘\033[32m" + *username + "\033[0m’ 密码‘\033[32m" + password + "\033[0m’")
 
 	mux := http.NewServeMux()
+
+	// speed := *bandwidthRate * 1024 * 1024 // 1MB/s
+	// rateLimitedHandler := BandwidthLimitMiddleware(speed, authedHandler)
+	// mux.Handle("/", rateLimitedHandler)
+
 	mux.Handle("/", authHandler) //当前目录
 
 	cert, err_tls := tls.LoadX509KeyPair(*crtPath, *keyPath)
@@ -254,7 +271,7 @@ func main() {
 		// log.Println("文件路径 \033[33m" + *path_show + "\033[0m")
 		log.Printf("\033[33m%d\033[0m端口启用https", *port)
 
-		logIPAddresses(*port)
+		logIPAddresses(*port, "https")
 
 		_ = cert
 
@@ -307,7 +324,7 @@ func main() {
 		log.Println(err_tls)
 		log.Printf("找不到证书和私钥，\033[33m%d\033[0m端口启用http", *port)
 
-		logIPAddresses(*port)
+		logIPAddresses(*port, "http")
 
 		// http.Handle("/", authHandler) //当前目录
 		err_http := http.ListenAndServe(":"+strconv.Itoa(*port), mux)

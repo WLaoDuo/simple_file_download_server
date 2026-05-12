@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -8,167 +9,263 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
+	"os/signal"
+	"path/filepath"
+	"syscall"
+	"time"
+
 	appVersion "webdemo/appinfo"
 
 	"github.com/fatih/color"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
+	"golang.org/x/sync/errgroup"
 )
 
-// red := "\033[31m"
-// green := "\033[32m"
-// yellow := "\033[33m"
-// blue := "\033[34m"
-// reset := "\033[0m"
-
-func exit_path(filename string) int {
-	_, err := os.Stat(filename)
-	if err == nil {
-		// fmt.Printf("文件 %s 存在\n", filename)
-		return 0
-	} else if os.IsNotExist(err) {
-		// fmt.Printf("文件 %s 不存在\n", filename)
-		return 1
-	} else {
-		// fmt.Printf("检查文件时发生错误: %v\n", err)
-		return 2
-	}
+// Config 服务器配置
+type Config struct {
+	CertFile string
+	KeyFile  string
+	Username string
+	Password string
+	Port     int
+	Path     string
+	Version  bool
 }
 
-func basicAuth(handler http.Handler, username, password, path string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := r.RemoteAddr  // 访问的 IP 地址
-		ua := r.UserAgent() //r.Header.Get("User-Agent") 获取ua头
+func parseFlags() *Config {
+	cfg := &Config{}
 
-		if username != "" || password != "" { //默认空密码用户名，无需认证
-			user, pass, ok := r.BasicAuth()
+	flag.StringVar(&cfg.CertFile, "crt", "D:/study/ssh-key/webdemo/server.crt", "TLS 证书crt文件路径")
+	flag.StringVar(&cfg.KeyFile, "key", "D:/study/ssh-key/webdemo/server.key", "TLS 私钥文件路径")
+	flag.StringVar(&cfg.Username, "u", "", "BasicAuth 用户名")
+	flag.StringVar(&cfg.Password, "password", "", "BasicAuth 密码 (长参数)")
+	flag.StringVar(&cfg.Password, "p", "", "BasicAuth 密码 (短参数)")
+	flag.IntVar(&cfg.Port, "port", 443, "监听端口")
+	flag.StringVar(&cfg.Path, "path", ".", "共享的文件目录路径")
+	flag.BoolVar(&cfg.Version, "version", false, "输出版本信息")
+	flag.Parse()
 
-			if !ok || user != username || pass != password {
-				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-				w.WriteHeader(http.StatusUnauthorized)
-				fmt.Fprintln(w, "Unauthorized") //网页端认证失败返回文字
-
-				log.Printf("%s 使用%s 头,%s方式尝试请求文件%s", color.RedString("非法访问者 "+ip), ua, r.Method, color.RedString(path+r.URL.Path))
-				return
-			} else {
-				log.Printf("%s 使用%s 头,%s方式请求文件%s", color.GreenString(ip), ua, r.Method, path+r.URL.Path)
-			}
-		} else {
-			log.Printf("%s 使用%s 头,%s方式请求文件%s", color.YellowString(ip), ua, r.Method, path+r.URL.Path)
-		}
-		handler.ServeHTTP(w, r)
-
-	})
+	return cfg
 }
 
-func quicgo_ListenAndServeTLS(addr, certFile, keyFile string, handler http.Handler) error {
-	//https://github.com/quic-go/quic-go/blob/master/http3/server.go#L709
-	//可监听tcp端口，兼容性最好
+func main() {
+	cfg := parseFlags()
 
-	var err_certs error
-	certs := make([]tls.Certificate, 1)
-	certs[0], err_certs = tls.LoadX509KeyPair(certFile, keyFile)
-	if err_certs != nil {
-		return err_certs
+	if cfg.Version {
+		fmt.Println(appVersion.BuildVersion())
+		os.Exit(0)
 	}
 
-	// // 加载第二个证书密钥对
-	// certs = append(certs, tls.Certificate{})
-	// certs[2], err_certs = tls.LoadX509KeyPair(certFile, keyFile)
-	// if err_certs != nil {
-	// 	log.Fatal("Failed to load second certificate and key:", err)
-	// }
-
-	// We currently only use the cert-related stuff from tls.Config,
-	// so we don't need to make a full copy.
-
-	if addr == "" {
-		addr = ":https"
-	}
-
-	// Open the listeners
-	udpAddr, err := net.ResolveUDPAddr("udp", addr)
+	// 验证目录存在
+	absPath, err := filepath.Abs(cfg.Path)
 	if err != nil {
-		return err
+		log.Fatalf("无法解析路径 %s: %v", cfg.Path, err)
+	}
+	if info, err := os.Stat(absPath); err != nil || !info.IsDir() {
+		log.Fatalf("路径不存在或不是目录: %s", absPath)
+	}
+
+	// 创建服务器实例
+	srv, err := NewServer(cfg)
+	if err != nil {
+		log.Fatalf("创建服务器失败: %v", err)
+	}
+
+	// 启动并等待关闭信号
+	if err := srv.quicgo_ListenAndServeTLS(); err != nil {
+		log.Fatalf("服务器运行异常: %v", err)
+	}
+}
+
+// Server 文件服务器实体
+type Server struct {
+	config   Config
+	handler  http.Handler
+	cert     tls.Certificate
+	http2Srv *http.Server
+	http3Srv *http3.Server
+}
+
+// NewServer 创建服务器，提前检查证书等资源
+func NewServer(cfg *Config) (*Server, error) {
+	absPath, _ := filepath.Abs(cfg.Path)
+	fileServer := http.FileServer(http.Dir(absPath))
+
+	// 认证中间件
+	var handler http.Handler = fileServer
+	if cfg.Username != "" || cfg.Password != "" {
+		handler = basicAuth(handler, cfg.Username, cfg.Password, absPath)
+	} else {
+		handler = loggingMiddleware(handler, absPath)
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/", handler)
+
+	// 尝试加载证书，失败则降级为 HTTP
+	cert, err := tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
+	if err != nil {
+		// 证书缺失，降级为 HTTP
+		log.Printf("警告: 加载证书失败 (%v)，将启用 HTTP 模式", err)
+		return &Server{
+			config:  *cfg,
+			handler: mux,
+		}, nil
+	}
+
+	return &Server{
+		config:  *cfg,
+		handler: mux,
+		cert:    cert,
+	}, nil
+}
+
+// 启动服务器并处理优雅关闭
+func (s *Server) quicgo_ListenAndServeTLS() error {
+	// 没有证书 -> 仅 HTTP
+	if s.cert.Certificate == nil {
+		addr := fmt.Sprintf(":%d", s.config.Port)
+		log.Printf("HTTP 文件服务器已启动 -> http://0.0.0.0%s", addr)
+		logIPAddresses(s.config.Port, "http")
+		return http.ListenAndServe(addr, s.handler)
+	}
+
+	// 配置 TLS
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{s.cert},
+		MinVersion:   tls.VersionTLS13,
+		NextProtos:   []string{"h3", "h2", "http/1.1"},
+	}
+	http3TLSConfig := http3.ConfigureTLSConfig(tlsConfig)
+
+	// 创建 HTTP/2 服务器 (用于 TCP，并设置 Alt-Svc 头以通告 QUIC)
+	http2Srv := &http.Server{
+		Addr: fmt.Sprintf(":%d", s.config.Port),
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// 设置 Alt-Svc 头，支持 QUIC 升级
+			s.http3Srv.SetQUICHeaders(w.Header())
+			s.handler.ServeHTTP(w, r)
+		}),
+		TLSConfig: tlsConfig,
+	}
+
+	// 创建 QUIC 服务器
+	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", s.config.Port))
+	if err != nil {
+		return fmt.Errorf("解析 UDP 地址失败: %w", err)
 	}
 	udpConn, err := net.ListenUDP("udp", udpAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("监听 UDP 端口失败: %w", err)
 	}
 	defer udpConn.Close()
 
-	if handler == nil {
-		handler = http.DefaultServeMux
-	}
-
-	quicServer := http3.Server{
-		Handler: handler,
-		TLSConfig: http3.ConfigureTLSConfig(
-			&tls.Config{
-				Certificates:             certs,
-				MinVersion:               tls.VersionTLS13,
-				NextProtos:               []string{"h3", "h2", "http/1.1"},
-				PreferServerCipherSuites: true,
-				CurvePreferences:         []tls.CurveID{tls.X25519, tls.CurveP256},
-				CipherSuites: []uint16{
-					tls.TLS_AES_128_GCM_SHA256,
-					tls.TLS_AES_256_GCM_SHA384,
-				},
-			}),
+	s.http3Srv = &http3.Server{
+		Handler:   s.handler,
+		TLSConfig: http3TLSConfig,
 		QUICConfig: &quic.Config{
 			Allow0RTT:       true,
 			EnableDatagrams: true,
 		},
 	}
 
-	hErr := make(chan error, 1)
-	qErr := make(chan error, 1)
-	go func() {
-		hErr <- http.ListenAndServeTLS(addr, certFile, keyFile, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			quicServer.SetQUICHeaders(w.Header())
-			handler.ServeHTTP(w, r)
-		}))
-	}()
-	go func() {
-		qErr <- quicServer.Serve(udpConn)
-	}()
+	// 使用 errgroup 管理两个服务器的生命周期
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
-	select {
-	case err := <-hErr:
-		quicServer.Close()
-		return err
-	case err := <-qErr:
-		// Cannot close the HTTP server or wait for requests to complete properly :/
+	g, ctx := errgroup.WithContext(ctx)
+
+	// 启动 HTTP/2 TCP 服务器
+	g.Go(func() error {
+		log.Printf("HTTPS (HTTP/2) 服务已启动 -> https://0.0.0.0:%d", s.config.Port)
+		logIPAddresses(s.config.Port, "https")
+		err := http2Srv.ListenAndServeTLS(s.config.CertFile, s.config.KeyFile)
+		if err != nil && err != http.ErrServerClosed {
+			return err
+		}
+		return nil
+	})
+
+	// 启动 QUIC (HTTP/3) 服务器
+	g.Go(func() error {
+		log.Printf("QUIC (HTTP/3) 服务已启动 -> https://0.0.0.0:%d (UDP)", s.config.Port)
+		err := s.http3Srv.Serve(udpConn)
+		if err != nil && err != http.ErrServerClosed {
+			return err
+		}
+		return nil
+	})
+
+	// 监听退出信号，优雅关闭
+	g.Go(func() error {
+		<-ctx.Done()
+		log.Println("正在关闭服务器...")
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// 关闭 HTTP 服务器
+		if err := http2Srv.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("HTTP 服务器关闭失败: %w", err)
+		}
+		// 关闭 QUIC 服务器
+		if err := s.http3Srv.Close(); err != nil {
+			return fmt.Errorf("QUIC 服务器关闭失败: %w", err)
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
 		return err
 	}
+	log.Println("服务器已安全退出")
+	return nil
 }
 
-// 获取本机有效的局域网IP地址（IPv4和IPv6）
-func getIP() ([]net.IP, []net.IP, error) {
-	var ipv4Addrs []net.IP
-	var ipv6Addrs []net.IP
+// basicAuth 中间件，提供基础认证和日志
+func basicAuth(handler http.Handler, username, password, path string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := r.RemoteAddr
+		ua := r.UserAgent()
 
-	// 获取所有网络接口
-	interfaces, err := net.Interfaces()
+		user, pass, ok := r.BasicAuth()
+		if !ok || user != username || pass != password {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprintln(w, "Unauthorized")
+			log.Printf("%s 尝试访问 %s (UA: %s)", color.RedString("非法访问者 "+ip), color.RedString(path+"/"+r.URL.Path), ua)
+			return
+		}
+		log.Printf("%s 请求文件 %s (UA: %s)", color.GreenString(ip), path+"/"+r.URL.Path, ua)
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// loggingMiddleware 无认证时的简单日志
+func loggingMiddleware(handler http.Handler, path string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("%s 请求文件 %s (UA: %s)", color.YellowString(r.RemoteAddr), path+"/"+r.URL.Path, r.UserAgent())
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// getIP 获取本机非回环的 IPv4 和 IPv6 地址
+func getIP() (ipv4, ipv6 []net.IP, err error) {
+	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, nil, err
 	}
-
-	for _, iface := range interfaces {
-		// 过滤无效接口（未启用或回环接口）
+	for _, iface := range ifaces {
 		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
 			continue
 		}
-
-		// 获取接口地址
 		addrs, err := iface.Addrs()
 		if err != nil {
 			continue
 		}
-
 		for _, addr := range addrs {
-			var ip net.IP
+			ip := net.IP{}
 			switch v := addr.(type) {
 			case *net.IPNet:
 				ip = v.IP
@@ -177,164 +274,30 @@ func getIP() ([]net.IP, []net.IP, error) {
 			default:
 				continue
 			}
-
-			// 过滤回环地址
 			if ip.IsLoopback() {
 				continue
 			}
-
-			// 分类处理
-			if ipv4 := ip.To4(); ipv4 != nil {
-				ipv4Addrs = append(ipv4Addrs, ipv4)
-			} else if ipv6 := ip.To16(); ipv6 != nil {
-				// 过滤IPv6链路本地地址（可选）
-				// if ipv6.IsLinkLocalUnicast() {
-				// 	continue
-				// }
-				ipv6Addrs = append(ipv6Addrs, ipv6)
+			if ip4 := ip.To4(); ip4 != nil {
+				ipv4 = append(ipv4, ip4)
+			} else if ip6 := ip.To16(); ip6 != nil {
+				ipv6 = append(ipv6, ip6)
 			}
 		}
 	}
-
-	return ipv4Addrs, ipv6Addrs, nil
+	return
 }
 
-func logIPAddresses(port int, status string) {
+// logIPAddresses 打印本机 IP 访问地址
+func logIPAddresses(port int, scheme string) {
 	ipv4, ipv6, err := getIP()
 	if err != nil {
-		log.Printf("获取IP地址失败: %v", err)
-		// return
+		log.Printf("获取本机 IP 失败: %v", err)
+		return
 	}
-	if status == "https" {
-		for _, ip := range ipv4 {
-			log.Printf("IPv4地址: https://%s:%d", ip, port)
-		}
-		for _, ip := range ipv6 {
-			log.Printf("IPv6地址: https://[%s]:%d", ip, port)
-		}
+	for _, ip := range ipv4 {
+		log.Printf("  %s://%s:%d", scheme, ip, port)
 	}
-	if status == "http" {
-		for _, ip := range ipv4 {
-			log.Printf("IPv4地址: http://%s:%d", ip, port)
-		}
-		for _, ip := range ipv6 {
-			log.Printf("IPv6地址: http://[%s]:%d", ip, port)
-		}
-	}
-
-}
-
-func main() {
-	var crtPath = flag.String("crt", "D:/study/ssh-key/webdemo/server.crt", "crt路径")
-	var keyPath = flag.String("key", "D:/study/ssh-key/webdemo/server.key", "key路径")
-	var username = flag.String("u", "", "用户名") //默认用户名admin
-	var password string
-	flag.StringVar(&password, "password", "", "密码") //长参数-password
-	flag.StringVar(&password, "p", "", "密码")        //短参数-p
-	port := flag.Int("port", 443, "端口")
-	var path_show = flag.String("path", ".", "文件路径") //文件加载路径，绝对路径可以，相对路径也可以，但需要注意加引号
-	var showVersion bool
-	flag.BoolVar(&showVersion, "version", false, "-version输出版本信息")
-	// var bandwidthRate = flag.Int64("speed", 10, "带宽限制（MB/秒）")
-	flag.Parse()
-
-	if showVersion {
-		// fmt.Printf("%+v\n", appVersion.AppInfo)
-		fmt.Println(appVersion.BuildVersion())
-		os.Exit(0)
-	}
-
-	// result1 := exit_path(*crtPath) //crt证书是否存在
-	// result2 := exit_path(*keyPath) //key密钥是否存在
-	if exit_path(*path_show) != 0 {
-		color.Green(*path_show)
-		log.Printf("当前文件（文件夹）路径不存在，请重新输入\n")
-		os.Exit(1)
-	}
-
-	fileServer := http.FileServer(http.Dir(*path_show))
-	authHandler := basicAuth(fileServer, *username, password, *path_show)
-
-	// fmt.Println("This", color.RedString("warning"), "should be not neglected.")
-	// fmt.Printf("%v %v\n", color.GreenString("Info:"), "an important message.")
-
-	log.Println("\n用户名‘" + color.GreenString(*username) + "’ 密码‘" + color.GreenString(password) + "’")
-
-	mux := http.NewServeMux()
-
-	// speed := *bandwidthRate * 1024 * 1024 // 1MB/s
-	// rateLimitedHandler := BandwidthLimitMiddleware(speed, authedHandler)
-	// mux.Handle("/", rateLimitedHandler)
-
-	mux.Handle("/", authHandler) //当前目录
-
-	cert, err_tls := tls.LoadX509KeyPair(*crtPath, *keyPath)
-
-	log.Println("文件路径" + color.GreenString(*path_show))
-
-	if err_tls == nil {
-		log.Printf("%s端口启用https", color.GreenString(strconv.Itoa(*port)))
-
-		logIPAddresses(*port, "https")
-
-		_ = cert
-
-		// srv := http.Server{ //http2
-		// 	Addr:    ":" + strconv.Itoa(*port), // fmt.Sprintf(":%d", *port),
-		// 	Handler: mux,
-		// 	TLSConfig: &tls.Config{
-		// 		Certificates:             []tls.Certificate{cert},
-		// 		MinVersion:               tls.VersionTLS13,
-		// 		PreferServerCipherSuites: true},
-		// }
-		// err_https := srv.ListenAndServeTLS(*crtPath, *keyPath)
-
-		// err_https := http.ListenAndServeTLS(fmt.Sprintf(":%d", *port), *crtPath, *keyPath, mux) //一句话的http2
-
-		// srv3 := http3.Server{ //http3 quic协议纯粹只开放udp端口，不开放tcp端口
-		// 	Handler: mux,
-		// 	Addr:    ":" + strconv.Itoa(*port),
-		// 	TLSConfig: http3.ConfigureTLSConfig(
-		// 		&tls.Config{
-		// 			Certificates:             []tls.Certificate{cert},
-		// 			MinVersion:               tls.VersionTLS13,
-		// 			NextProtos:               []string{"h3", "h2", "http/1.1"},
-		// 			PreferServerCipherSuites: true,
-		// 		}),
-		// 	QUICConfig: &quic.Config{
-		// 		Allow0RTT:       true,
-		// 		EnableDatagrams: true,
-		// 	},
-		// }
-		// err_https := srv3.ListenAndServeTLS(*crtPath, *keyPath)
-
-		// err_https := http3.ListenAndServeTLS(":"+strconv.Itoa(*port), *crtPath, *keyPath, mux) //http3支持tcp端口，兼容性最好
-
-		err_https := quicgo_ListenAndServeTLS(":"+strconv.Itoa(*port), *crtPath, *keyPath, mux) //http3.ListenAndServeTLS源代码增加了tls.config和quic.config
-
-		if err_https != nil {
-			log.Println(err_https.Error())
-		}
-
-		//可以使用crypto/tls中的generate_cert.go来生成cert.pem和key.pem
-		//go run $GOROOT/src/crypto/tls/generate_cert.go --host 域名/IP
-
-		//也可用https://github.com/FiloSottile/mkcert项目签发证书
-		//.\mkcert-v1.4.4-windows-amd64.exe -key-file ./127.0.0.1-key -cert-file ./127.0.0.1.crt  127.0.0.1
-	} else {
-		if *port == 443 {
-			*port = 80
-		}
-		log.Println(err_tls)
-		log.Printf("找不到证书和私钥，%v端口启用http", color.GreenString(strconv.Itoa(*port)))
-
-		logIPAddresses(*port, "http")
-
-		// http.Handle("/", authHandler) //当前目录
-		err_http := http.ListenAndServe(":"+strconv.Itoa(*port), mux)
-		//监听8080端口，外网可访问http://ip:port
-		if err_http != nil {
-			log.Println(err_http.Error())
-		}
+	for _, ip := range ipv6 {
+		log.Printf("  %s://[%s]:%d", scheme, ip, port)
 	}
 }

@@ -1,12 +1,12 @@
 module webdemo
 
-go 1.24.10
+go 1.25.0
 
 require (
 	github.com/caarlos0/go-version v0.2.0
 	github.com/fatih/color v1.18.0
 	github.com/quic-go/quic-go v0.59.0
-	golang.org/x/sync v0.16.0
+	golang.org/x/sync v0.20.0
 )
 
 require (
